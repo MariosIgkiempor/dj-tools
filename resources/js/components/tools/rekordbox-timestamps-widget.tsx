@@ -1,10 +1,10 @@
-import { DragEventHandler, FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { CopyToClipboardButton } from '@/components/copy-to-clipboard-button';
+import { DropContainer } from '@/components/drop-container';
 
 
 function tokenize(input: string): string[] {
@@ -99,15 +99,12 @@ function RekordboxTimestampsWidgetInput({ onInputChange, input }: {
     input: string,
     onInputChange: (value: (((prevState: string) => string) | string)) => void
 }) {
-    const dropContainer = useRef<HTMLDivElement>(null);
-    const [dragging, setDragging] = useState<boolean>(false);
-
-    const handleDrop: DragEventHandler<HTMLTextAreaElement> = async (event) => {
+    const handleDrop = async (event: DragEvent) => {
         event.preventDefault();
 
         let text = '';
 
-        if (event.dataTransfer.items) {
+        if (event.dataTransfer?.items) {
             for (const item of [...event.dataTransfer.items]) {
                 if (item.kind !== 'file') {
                     continue;
@@ -121,41 +118,13 @@ function RekordboxTimestampsWidgetInput({ onInputChange, input }: {
         onInputChange(text);
     };
 
-    useEffect(() => {
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            setDragging(true);
-        }
 
-        function handleDragLeave(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            setDragging(false);
-        }
-
-        dropContainer.current?.addEventListener('dragover', handleDragOver);
-        dropContainer.current?.addEventListener('drop', handleDrop);
-        dropContainer.current?.addEventListener('dragleave', handleDragLeave);
-
-        return () => {
-            if (dropContainer.current) {
-                dropContainer.current?.removeEventListener('dragover', handleDragOver);
-                dropContainer.current?.removeEventListener('drop', handleDrop);
-                dropContainer.current?.removeEventListener('dragleave', handleDragLeave);
-            }
-        };
-    }, []);
-
-    return <div ref={dropContainer} className={cn('border border-muted rounded-lg', {
-        'border-yellow-500 border-2 border-spacing-2': dragging
-    })}>
+    return <DropContainer onDrop={handleDrop}>
         <Textarea onChange={(e) => onInputChange(e.target.value)}
                   value={input}
-                  onDrop={handleDrop}
                   placeholder={'Paste or drag & drop your Rekordbox .cue file here'}
                   className={'h-36 border-none'} />
-    </div>;
+    </DropContainer>;
 }
 
 
@@ -174,9 +143,14 @@ export function RekordboxTimestampsWidget() {
     }
 
     return <Card>
-        <CardHeader><CardTitle>Rekordbox Timestamps Generator</CardTitle>
-            <CardDescription>Copy Rekordbox <pre className={'inline'}>.cue</pre> files here to generate a
-                Youtube-friendly description</CardDescription></CardHeader>
+        <CardHeader>
+            <CardTitle>
+                Rekordbox Timestamps Generator
+            </CardTitle>
+            <CardDescription>
+                Copy Rekordbox <pre className={'inline'}>.cue</pre> files here to generate a Youtube-friendly description
+            </CardDescription>
+        </CardHeader>
         <CardContent>
             <div className="flex flex-col lg:flex-row gap-4">
                 <form onSubmit={handleSubmit} className="flex-1 space-y-4">
